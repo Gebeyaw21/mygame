@@ -1,136 +1,22 @@
-<!DOCTYPE html>
-<html lang="am">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Afro Style Bingo</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <style>
-        .active-num { background-color: #f59e0b !important; color: white; font-weight: bold; }
-        .marked { background-color: #10b981 !important; color: white; }
-    </style>
-</head>
-<body class="bg-slate-900 text-white min-h-screen font-sans">
-
-    <!-- Header Section -->
-    <header class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
-        <div>
-            <h1 class="text-xl font-bold text-amber-500">ስማርት ቢንጎ</h1>
-            <p class="text-xs text-gray-400">Status: <span id="status" class="text-yellow-400">እየተገናኘ ነው...</span></p>
-        </div>
-        <div class="bg-slate-700 px-3 py-1 rounded-lg text-right">
-            <span class="text-xs text-gray-300 block">ድራሽ (Prize Pool)</span>
-            <span class="text-lg font-bold text-green-400">100 ETB</span>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="p-4 max-w-md mx-auto space-y-4">
-        
-        <!-- Current Call Display -->
-        <div class="bg-purple-900 border-2 border-purple-500 rounded-xl p-4 text-center shadow-lg">
-            <span class="text-xs text-purple-300 uppercase tracking-wider block mb-1">አሁን የተጠራው ቁጥር</span>
-            <div id="current-call" class="text-5xl font-black text-amber-400 my-1">--</div>
-        </div>
-
-        <!-- Bingo Cartela -->
-        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-md">
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-semibold text-amber-400">ካርቴላ (Cartela #1)</span>
-                <button onclick="generateCartela()" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded">ቀይር</button>
-            </div>
-            
-            <div class="grid grid-cols-5 gap-1 text-center font-bold text-sm mb-1">
-                <div class="bg-amber-500 text-slate-900 py-1 rounded">B</div>
-                <div class="bg-amber-500 text-slate-900 py-1 rounded">I</div>
-                <div class="bg-amber-500 text-slate-900 py-1 rounded">N</div>
-                <div class="bg-amber-500 text-slate-900 py-1 rounded">G</div>
-                <div class="bg-amber-500 text-slate-900 py-1 rounded">O</div>
-            </div>
-
-            <div id="cartela-grid" class="grid grid-cols-5 gap-1 text-center text-sm"></div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex gap-2">
-            <button onclick="requestStart()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition">
-                ጨዋታ ጀምር
-            </button>
-            <button onclick="checkBingo()" class="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg transition">
-                BINGO!
-            </button>
-        </div>
-
-    </main>
-
     <script>
-        // Connect to Render Backend
         const socket = io('https://bingo-server-9kkr.onrender.com');
-
-        socket.on('connect', () => {
-            document.getElementById('status').innerText = 'ኦንላይን';
-            document.getElementById('status').className = 'text-green-400';
-        });
-
-        socket.on('disconnect', () => {
-            document.getElementById('status').innerText = 'ኮኔክሽን ተቋርጧል';
-            document.getElementById('status').className = 'text-red-400';
-        });
+        
+        // ድምፅ ማጫወቻዎች
+        const callSound = new Audio('https://actions.google.com/sounds/v1/ui/click.ogg');
+        const winSound = new Audio('https://actions.google.com/sounds/v1/ui/happy_chime_positive.ogg');
 
         socket.on('numberCalled', (data) => {
+            callSound.play(); // እዚህ ጋር ድምፅ ይኖረዋል
             let nextNum = data.number;
-            let letter = '';
-            if (nextNum <= 15) letter = 'B';
-            else if (nextNum <= 30) letter = 'I';
-            else if (nextNum <= 45) letter = 'N';
-            else if (nextNum <= 60) letter = 'G';
-            else letter = 'O';
-
+            let letter = (nextNum <= 15) ? 'B' : (nextNum <= 30) ? 'I' : (nextNum <= 45) ? 'N' : (nextNum <= 60) ? 'G' : 'O';
             document.getElementById('current-call').innerText = `${letter}-${nextNum}`;
         });
 
-        function generateCartela() {
-            const grid = document.getElementById('cartela-grid');
-            grid.innerHTML = '';
-            const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
-            let columns = [];
-
-            for (let i = 0; i < 5; i++) {
-                let col = [];
-                while (col.length < 5) {
-                    let num = Math.floor(Math.random() * (ranges[i][1] - ranges[i][0] + 1)) + ranges[i][0];
-                    if (!col.includes(num)) col.push(num);
-                }
-                columns.push(col);
-            }
-
-            for (let row = 0; row < 5; row++) {
-                for (let col = 0; col < 5; col++) {
-                    const btn = document.createElement('div');
-                    btn.className = 'bg-slate-700 p-3 rounded font-bold cursor-pointer transition';
-                    if (row === 2 && col === 2) {
-                        btn.innerText = '★';
-                        btn.classList.add('marked');
-                    } else {
-                        let num = columns[col][row];
-                        btn.innerText = num;
-                        btn.onclick = () => btn.classList.toggle('marked');
-                    }
-                    grid.appendChild(btn);
-                }
-            }
-        }
-
-        function requestStart() {
-            socket.emit('startGame');
-        }
-
         function checkBingo() {
+            winSound.play(); // እዚህ ጋር አሸናፊ ድምፅ ይኖረዋል
             alert("ቢንጎ ማረጋገጫ ተላከ!");
         }
 
-        generateCartela();
+        // ... የተቀረው የካርቴላ መፍጠሪያ ኮድህ እንዳለ ይቆያል
+        // generateCartela() እና requestStart() ተግባራት እንዳሉ ይቆዩ
     </script>
-</body>
-</html>
