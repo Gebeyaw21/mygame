@@ -71,30 +71,33 @@
         });
 
         socket.on('winnerFound', (data) => {
-            alert(`🎉 ቢንጎ! ተጫዋች #${data.winnerId} አሸንፏል! ጨዋታው ተጠናቋል።`);
-        });
-
-        socket.on('falseBingo', (data) => {
-            alert(`⚠️ ${data.message}`);
+            alert(`🎉 ቢንጎ! ተጫዋች #${data.winnerId} አሸንፏል!`);
         });
 
         function generateCartela() {
             const grid = document.getElementById('cartela-grid');
             grid.innerHTML = '';
-            
             const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
             let columns = [];
 
-            // ለእያንዳንዱ አምድ (B, I, N, G, O) 5 ልዩ ቁጥሮችን ማዘጋጀት
-            for (let c = 0; c = 0; col--) {
+            for (let c = 0; c < 5; c++) {
+                let colNums = [];
+                while(colNums.length < 5) {
+                    let n = Math.floor(Math.random() * (ranges[c][1]-ranges[c][0]+1)) + ranges[c][0];
+                    if(!colNums.includes(n)) colNums.push(n);
+                }
+                columns.push(colNums);
+            }
+
+            for (let r = 0; r < 5; r++) {
+                for (let c = 0; c < 5; c++) {
                     const btn = document.createElement('div');
                     btn.className = 'bg-slate-700 p-3 rounded font-bold cursor-pointer transition';
-                    
-                    if (row === 2 && col === 2) {
+                    if (r === 2 && c === 2) {
                         btn.innerText = '★';
                         btn.classList.add('marked');
                     } else {
-                        btn.innerText = columns[col][row];
+                        btn.innerText = columns[c][r];
                         btn.onclick = () => btn.classList.toggle('marked');
                     }
                     grid.appendChild(btn);
@@ -109,9 +112,8 @@
             let selectedNums = [];
             markedCells.forEach(cell => {
                 if (cell.innerText === '★') selectedNums.push('FREE');
-                else selectedNums.push(parseInt(cell.innerText));
+                else if (cell.innerText !== '') selectedNums.push(parseInt(cell.innerText));
             });
-
             socket.emit('claimBingo', selectedNums);
         }
 
