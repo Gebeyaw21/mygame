@@ -58,8 +58,7 @@
 
     <script>
         const socket = io('https://bingo-server-9kkr.onrender.com');
-        const callSound = new Audio('https://actions.google.com/sounds/v1/ui/click.ogg');
-        const winSound = new Audio('https://actions.google.com/sounds/v1/ui/happy_chime_positive.ogg');
+        let myCartelaNumbers = [];
 
         socket.on('connect', () => {
             document.getElementById('status').innerText = 'ኦንላይን';
@@ -67,16 +66,25 @@
         });
 
         socket.on('numberCalled', (data) => {
-            callSound.play();
             let nextNum = data.number;
             let letter = (nextNum <= 15) ? 'B' : (nextNum <= 30) ? 'I' : (nextNum <= 45) ? 'N' : (nextNum <= 60) ? 'G' : 'O';
             document.getElementById('current-call').innerText = `${letter}-${nextNum}`;
         });
 
+        socket.on('winnerFound', (data) => {
+            alert(`🎉 ቢንጎ! ተጫዋች #${data.winnerId} አሸንፏል! ጨዋታው ተጠናቋል።`);
+        });
+
+        socket.on('falseBingo', (data) => {
+            alert(`⚠️ ${data.message}`);
+        });
+
         function generateCartela() {
             const grid = document.getElementById('cartela-grid');
             grid.innerHTML = '';
+            myCartelaNumbers = [];
             const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
+            
             for (let col = 0; col < 5; col++) {
                 let nums = [];
                 while(nums.length < 5) {
@@ -89,9 +97,11 @@
                     if (row === 2 && col === 2) {
                         btn.innerText = '★';
                         btn.classList.add('marked');
+                        myCartelaNumbers.push('FREE');
                     } else {
                         btn.innerText = num;
                         btn.onclick = () => btn.classList.toggle('marked');
+                        myCartelaNumbers.push(num);
                     }
                     grid.appendChild(btn);
                 });
@@ -99,9 +109,17 @@
         }
 
         function requestStart() { socket.emit('startGame'); }
+
         function checkBingo() {
-            winSound.play();
-            alert("ቢንጎ! ማረጋገጫ ተላከ።");
+            // ምልክት የተደረገባቸውን ቁጥሮች ብቻ መለየት
+            const markedCells = document.querySelectorAll('.marked');
+            let selectedNums = [];
+            markedCells.forEach(cell => {
+                if (cell.innerText === '★') selectedNums.push('FREE');
+                else selectedNums.push(parseInt(cell.innerText));
+            });
+
+            socket.emit('claimBingo', selectedNums);
         }
 
         generateCartela();
