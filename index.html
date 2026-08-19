@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tap Coin Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>.tap-btn:active { transform: scale(0.95); }</style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-4">
+    <div class="text-center">
+        <h1 class="text-gray-400 text-sm uppercase tracking-widest">ጠቅላላ ነጥብ</h1>
+        <h2 id="score" class="text-6xl font-black text-yellow-400 my-2">0</h2>
+    </div>
+    <div class="my-10">
+        <button onclick="tapCoin()" class="tap-btn w-64 h-64 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-full shadow-2xl border-4 border-yellow-200 flex items-center justify-center transition-transform">
+            <span class="text-8xl">🪙</span>
+        </button>
+    </div>
+    <script>
+        let score = localStorage.getItem('myScore') ? parseInt(localStorage.getItem('myScore')) : 0;
+        document.getElementById('score').innerText = score;
+        function tapCoin() {
+            score++;
+            document.getElementById('score').innerText = score;
+            localStorage.setItem('myScore', score);
+        }
+    </script>
+</body>
+</html>
