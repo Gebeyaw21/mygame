@@ -6,6 +6,7 @@
     <title>Afro Style Bingo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         .marked { background-color: #10b981 !important; color: white; }
     </style>
@@ -24,6 +25,22 @@
     </header>
 
     <main class="p-4 max-w-md mx-auto space-y-4">
+        
+        <!-- Telebirr Manual Verification Section -->
+        <div id="buy-section" class="bg-slate-800 p-4 rounded-xl border border-amber-500/30 shadow-lg space-y-3">
+            <div class="bg-slate-900 p-3 rounded-lg text-xs text-gray-300">
+                <p class="font-bold text-amber-400 mb-1">📌 የክፍያ መመሪያ፦</p>
+                <p>1. በቴሌብር ወደ <b class="text-amber-400">0995445844</b> (10 ETB) ይላኩ።</p>
+                <p>2. ከቴሌብር የደረሰዎትን መልእክት እዚህ ሳጥን ውስጥ <b>Paste</b> አድርገው ይላኩ።</p>
+            </div>
+
+            <textarea id="sms-input" rows="3" placeholder="ከቴሌብር የደረሰዎትን መልእክት እዚህ Paste ያድርጉ..." class="w-full bg-slate-700 text-white p-2.5 rounded-lg text-xs border border-slate-600 focus:outline-none focus:border-amber-500"></textarea>
+            
+            <button onclick="verifySMS()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg shadow-lg transition text-sm">
+                ክፍያውን አረጋግጥ
+            </button>
+        </div>
+
         <div class="bg-purple-900 border-2 border-purple-500 rounded-xl p-4 text-center shadow-lg">
             <span class="text-xs text-purple-300 uppercase tracking-wider block mb-1">አሁን የተጠራው ቁጥር</span>
             <div id="current-call" class="text-5xl font-black text-amber-400 my-1">--</div>
@@ -57,6 +74,9 @@
     </main>
 
     <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
         const socket = io('https://bingo-server-9kkr.onrender.com');
 
         socket.on('connect', () => {
@@ -70,9 +90,33 @@
             document.getElementById('current-call').innerText = `${letter}-${nextNum}`;
         });
 
-        socket.on('winnerFound', (data) => {
-            alert(`🎉 ቢንጎ! ተጫዋች #${data.winnerId} አሸንፏል!`);
-        });
+        async function verifySMS() {
+            const smsText = document.getElementById('sms-input').value.trim();
+            if (!smsText) {
+                alert("እባክዎ አስቀድመው የቴሌብር መልእክቱን ያቱ!");
+                return;
+            }
+
+            try {
+                const response = await fetch('https://bingo-server-9kkr.onrender.com/api/verify-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: smsText,
+                        userId: tg.initDataUnsafe?.user?.id || 'guest'
+                    })
+                });
+
+                const result = await response.json();
+                alert(result.message);
+
+                if (result.success) {
+                    document.getElementById('buy-section').style.display = 'none';
+                }
+            } catch (err) {
+                alert("የማረጋገጥ ስህተት አጋጥሟል! እባክዎ ድጋሚ ይሞክሩ።");
+            }
+        }
 
         function generateCartela() {
             const grid = document.getElementById('cartela-grid');
