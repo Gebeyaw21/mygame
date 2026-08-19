@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Afro Style Bingo</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
         .active-num { background-color: #f59e0b !important; color: white; font-weight: bold; }
         .marked { background-color: #10b981 !important; color: white; }
@@ -16,11 +17,11 @@
     <header class="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
         <div>
             <h1 class="text-xl font-bold text-amber-500">ስማርት ቢንጎ</h1>
-            <p class="text-xs text-gray-400">Game ID: #BG<span id="game-id">889</span></p>
+            <p class="text-xs text-gray-400">Status: <span id="status" class="text-yellow-400">እየተገናኘ ነው...</span></p>
         </div>
         <div class="bg-slate-700 px-3 py-1 rounded-lg text-right">
             <span class="text-xs text-gray-300 block">ድራሽ (Prize Pool)</span>
-            <span class="text-lg font-bold text-green-400" id="prize-pool">100 ETB</span>
+            <span class="text-lg font-bold text-green-400">100 ETB</span>
         </div>
     </header>
 
@@ -33,7 +34,7 @@
             <div id="current-call" class="text-5xl font-black text-amber-400 my-1">--</div>
         </div>
 
-        <!-- Bingo Cartela (5x5 Grid) -->
+        <!-- Bingo Cartela -->
         <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-md">
             <div class="flex justify-between items-center mb-2">
                 <span class="text-sm font-semibold text-amber-400">ካርቴላ (Cartela #1)</span>
@@ -48,14 +49,12 @@
                 <div class="bg-amber-500 text-slate-900 py-1 rounded">O</div>
             </div>
 
-            <div id="cartela-grid" class="grid grid-cols-5 gap-1 text-center text-sm">
-                <!-- Numbers generated dynamically -->
-            </div>
+            <div id="cartela-grid" class="grid grid-cols-5 gap-1 text-center text-sm"></div>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex gap-2">
-            <button onclick="startGame()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition">
+            <button onclick="requestStart()" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition">
                 ጨዋታ ጀምር
             </button>
             <button onclick="checkBingo()" class="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl shadow-lg transition">
@@ -66,21 +65,37 @@
     </main>
 
     <script>
-        let cartelaNumbers = [];
-        let calledNumbers = [];
-        let intervalId = null;
+        // Connect to Render Backend
+        const socket = io('https://bingo-server-9kkr.onrender.com');
 
-        // Generate Random Cartela
+        socket.on('connect', () => {
+            document.getElementById('status').innerText = 'ኦንላይን';
+            document.getElementById('status').className = 'text-green-400';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('status').innerText = 'ኮኔክሽን ተቋርጧል';
+            document.getElementById('status').className = 'text-red-400';
+        });
+
+        socket.on('numberCalled', (data) => {
+            let nextNum = data.number;
+            let letter = '';
+            if (nextNum <= 15) letter = 'B';
+            else if (nextNum <= 30) letter = 'I';
+            else if (nextNum <= 45) letter = 'N';
+            else if (nextNum <= 60) letter = 'G';
+            else letter = 'O';
+
+            document.getElementById('current-call').innerText = `${letter}-${nextNum}`;
+        });
+
         function generateCartela() {
             const grid = document.getElementById('cartela-grid');
             grid.innerHTML = '';
-            cartelaNumbers = [];
-
-            const ranges = [
-                [1, 15], [16, 30], [31, 45], [46, 60], [61, 75]
-            ];
-
+            const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
             let columns = [];
+
             for (let i = 0; i < 5; i++) {
                 let col = [];
                 while (col.length < 5) {
@@ -94,59 +109,27 @@
                 for (let col = 0; col < 5; col++) {
                     const btn = document.createElement('div');
                     btn.className = 'bg-slate-700 p-3 rounded font-bold cursor-pointer transition';
-                    
                     if (row === 2 && col === 2) {
                         btn.innerText = '★';
                         btn.classList.add('marked');
-                        cartelaNumbers.push('FREE');
                     } else {
                         let num = columns[col][row];
                         btn.innerText = num;
-                        btn.id = `cell-${num}`;
                         btn.onclick = () => btn.classList.toggle('marked');
-                        cartelaNumbers.push(num);
                     }
                     grid.appendChild(btn);
                 }
             }
         }
 
-        // Start Calling Numbers
-        function startGame() {
-            if (intervalId) clearInterval(intervalId);
-            calledNumbers = [];
-            document.getElementById('current-call').innerText = '--';
-
-            intervalId = setInterval(() => {
-                if (calledNumbers.length >= 75) {
-                    clearInterval(intervalId);
-                    alert("ሁሉም ቁጥሮች ተጠርተው አልቀዋል!");
-                    return;
-                }
-
-                let nextNum;
-                do {
-                    nextNum = Math.floor(Math.random() * 75) + 1;
-                } while (calledNumbers.includes(nextNum));
-
-                calledNumbers.push(nextNum);
-                
-                let letter = '';
-                if (nextNum <= 15) letter = 'B';
-                else if (nextNum <= 30) letter = 'I';
-                else if (nextNum <= 45) letter = 'N';
-                else if (nextNum <= 60) letter = 'G';
-                else letter = 'O';
-
-                document.getElementById('current-call').innerText = `${letter}-${nextNum}`;
-            }, 3000);
+        function requestStart() {
+            socket.emit('startGame');
         }
 
         function checkBingo() {
-            alert("ቢንጎ ማረጋገጫ በደረጃ 2 ሰርቨር ላይ ይገናኛል!");
+            alert("ቢንጎ ማረጋገጫ ተላከ!");
         }
 
-        // Initialize on load
         generateCartela();
     </script>
 </body>
