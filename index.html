@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>አፍሮ ቢንጎ</title>
+    <title>ናኑ ቢንጎ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>.marked { background-color: #10b981 !important; color: white; }</style>
@@ -87,38 +87,41 @@
         }
 
         function generateCartela() {
-            const grid = document.getElementById('cartela-grid');
-            grid.innerHTML = '';
-            currentCartelaNumbers = [];
-            const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
-            let cols = ranges.map(r => {
-                let nums = [];
-                while(nums.length < 5) {
-                    let n = Math.floor(Math.random() * (r[1]-r[0]+1)) + r[0];
-                    if(!nums.includes(n)) nums.push(n);
-                }
-                return nums;
-            });
+    const grid = document.getElementById('cartela-grid');
+    grid.innerHTML = '';
+    
+    // ከ 1 እስከ 400 ካሉት ካርቴላዎች መካከል አንዱን በቁጥር ማሳየት
+    let cartelaId = Math.floor(Math.random() * 400) + 1;
+    
+    const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
+    let cols = ranges.map(r => {
+        let nums = [];
+        while(nums.length < 5) {
+            let n = Math.floor(Math.random() * (r[1]-r[0]+1)) + r[0];
+            if(!nums.includes(n)) nums.push(n);
+        }
+        return nums;
+    });
 
-            for (let r = 0; r < 5; r++) {
-                for (let c = 0; c < 5; c++) {
-                    const btn = document.createElement('div');
-                    btn.className = 'bg-slate-700 p-2.5 rounded font-bold cursor-pointer';
-                    if (r === 2 && c === 2) {
-                        btn.innerText = '★';
-                        btn.classList.add('marked');
-                        currentCartelaNumbers.push('FREE');
-                        btn.dataset.val = 'FREE';
-                    } else {
-                        let val = cols[c][r];
-                        btn.innerText = val;
-                        btn.dataset.val = val;
-                        currentCartelaNumbers.push(val);
-                        btn.onclick = () => btn.classList.toggle('marked');
-                    }
-                    grid.appendChild(btn);
-                }
+    for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+            const btn = document.createElement('div');
+            btn.className = 'bg-slate-700 p-2.5 rounded font-bold cursor-pointer';
+            if (r === 2 && c === 2) {
+                btn.innerText = '★';
+                btn.classList.add('marked');
+                btn.dataset.val = 'FREE';
+            } else {
+                let val = cols[c][r];
+                btn.innerText = val;
+                btn.dataset.val = val;
+                btn.onclick = () => btn.classList.toggle('marked');
             }
+            grid.appendChild(btn);
+        }
+    }
+}
+
         }
 
         function checkBingo() {
