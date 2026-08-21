@@ -6,20 +6,19 @@
     <title>አፍሮ ቢንጎ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>.marked { background-color: #10b981 !important; color: white; }</style>
 </head>
 <body class="bg-slate-900 text-white font-sans p-4 max-w-md mx-auto space-y-4">
 
-    <!-- Header -->
+    <!-- Header & Prize Pool -->
     <div class="flex justify-between items-center bg-slate-800 p-3 rounded-xl border border-slate-700">
         <div>
-            <h1 class="font-bold text-amber-500 text-lg">ስማርት ቢንጎ</h1>
+            <h1 class="font-bold text-amber-500 text-lg">አፍሮ ቢንጎ</h1>
             <p class="text-xs text-gray-400">ተጫዋቾች፦ <span id="player-count" class="text-green-400 font-bold">1</span></p>
         </div>
         <div class="text-right bg-slate-700 px-3 py-1 rounded-lg">
-            <span class="text-xs text-gray-300 block">Prize Pool</span>
-            <span class="text-sm font-bold text-green-400">100 ETB</span>
+            <span class="text-xs text-gray-300 block">የሽልማት ድምር</span>
+            <span id="prize-pool" class="text-sm font-bold text-green-400">100 ETB</span>
         </div>
     </div>
 
@@ -60,14 +59,18 @@
 
     <script>
         const socket = io('https://bingo-server-1-ovuc.onrender.com');
+        let currentCartelaNumbers = [];
 
         socket.on('playerCountUpdate', count => document.getElementById('player-count').innerText = count);
+        
         socket.on('numberCalled', data => {
             let n = data.number;
             let l = (n <= 15)?'B':(n <= 30)?'I':(n <= 45)?'N':(n <= 60)?'G':'O';
             document.getElementById('current-call').innerText = `${l}-${n}`;
         });
+
         socket.on('winnerFound', d => alert(`🎉 BINGO! አሸናፊ፦ ${d.winner}`));
+        socket.on('falseBingo', d => alert(d.message));
 
         async function verifySMS() {
             const sms = document.getElementById('sms-input').value.trim();
@@ -86,6 +89,7 @@
         function generateCartela() {
             const grid = document.getElementById('cartela-grid');
             grid.innerHTML = '';
+            currentCartelaNumbers = [];
             const ranges = [[1, 15], [16, 30], [31, 45], [46, 60], [61, 75]];
             let cols = ranges.map(r => {
                 let nums = [];
@@ -103,14 +107,32 @@
                     if (r === 2 && c === 2) {
                         btn.innerText = '★';
                         btn.classList.add('marked');
+                        currentCartelaNumbers.push('FREE');
+                        btn.dataset.val = 'FREE';
                     } else {
-                        btn.innerText = cols[c][r];
+                        let val = cols[c][r];
+                        btn.innerText = val;
+                        btn.dataset.val = val;
+                        currentCartelaNumbers.push(val);
                         btn.onclick = () => btn.classList.toggle('marked');
                     }
                     grid.appendChild(btn);
                 }
             }
         }
+
+        function checkBingo() {
+            const gridItems = document.querySelectorAll('#cartela-grid > div');
+            let selectedNums = [];
+            gridItems.forEach(item => {
+                if (item.classList.contains('marked')) {
+                    let val = item.dataset.val;
+                    selectedNums.push(val === 'FREE' ? 'FREE' : Number(val));
+                }
+            });
+            socket.emit('claimBingo', { selectedNumbers: selectedNums });
+        }
+
         generateCartela();
     </script>
 </body>
